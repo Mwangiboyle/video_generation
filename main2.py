@@ -9,13 +9,17 @@ api_key = os.getenv("OPENAI_API_KEY")
 
 client = OpenAI(api_key=api_key)
 
-# Function to encode the image
-def encode_image(image_path):
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode("utf-8")
+# Function to create a file with the Files API
+def create_file(file_path):
+  with open(file_path, "rb") as file_content:
+    result = client.files.create(
+        file=file_content,
+        purpose="vision",
+    )
+    return result.id
 
-
-image_url = "https://imgur.com/a/xi6RoUW"
+# Getting the file ID
+file_id = create_file("data/WhatsApp Image 2025-05-26 at 5.19.33 PM.jpeg")
 
 
 
@@ -28,7 +32,7 @@ response = client.responses.create(
                 { "type": "input_text", "text": "Extract the text in this image and return texts" },
                 {
                     "type": "input_image",
-                    "image_url": image_url,
+                    "file_id": file_id,
                 },
             ],
         }
