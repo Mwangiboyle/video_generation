@@ -1,77 +1,75 @@
-from mistralai import Mistral
+from openai import OpenAI
 from dotenv import load_dotenv
 import json
 import os
 
 load_dotenv()
 
-#load api key
-api_key = os.getenv("MISTRAL_API_KEY")
-
-client = Mistral(api_key=api_key)
+# Load API keys
+open_api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=open_api_key)
 
 title = input("Enter your idea here: ")
+time_duration = 100
 
-prompt = f'''You are a video scriptwriter for short educational YouTube videos.
+# Prompt to generate structured JSON output
+prompt = f"""
+You are an advanced AI script generator tasked with creating detailed video scripts based on a given title and time duration.
 
-Your job is to generate a concise and clear script for a short video based on the following :
+Please output the result in **strict JSON format**, like this:
 
-eg. How to make money as a developer
+{{
+  "scenes": [
+    {{
+      "narration": "Scene narration here.",
+      "keywords": ["keyword1", "keyword2"],
+      "visuals": "Visual description here."
+    }}
+  ]
+}}
 
-Break the topic down into 5 to 7 actionable, logical steps. Each step should be written like a scene in a video: what the narrator would say and what the viewer would see.
+Ensure:
+1. Each scene includes a keyword array.
+2. Final scene has a call to action.
+3. JSON must start with '{{' and be parsable by Python's json module.
 
-Each step should be:
-- Simple and clear (aimed at beginners)
-- One sentence describing the narration
-- One sentence describing the visual content
-- Include 1–2 relevant keywords for stock footage
+Input:
+- Title: {title}
+- Time_duration: {time_duration} seconds
+"""
 
-Format your output as a JSON array of steps like this:
-
-
-  
-   "narration": "Start by choosing a programming language to master.",
-    "visual": "Show a developer browsing programming languages.",
-    "keywords": ["programming", "developer"]
-title: {title}
-
-
-'''
-responses = client.chat.complete(
-    model = "mistral-large-latest", 
+# Fetch response from model
+responses = client.chat.completions.create(
+    model="gpt-4o",
     messages=[
-        {
-            "role": "user",
-            "content" : prompt
-        }
-    ],
-
+        {"role": "system", "content": prompt}
+    ]
 )
 
-reponse = responses.choices[0].message.content
+response = responses.choices[0].message.content.strip()
 
-import json
-import re
+# Debug print
+print("=== MODEL RESPONSE RAW ===")
+print(repr(response))  # Shows escape characters
 
-def clean_llm_json_response(raw_response):
-    # Step 1: Remove Markdown code block markers if they exist
-    clean_str = re.sub(r"^```json\n|```$", "", raw_response.strip(), flags=re.MULTILINE)
+# Remove markdown formatting
+if response.startswith("```json"):
+    response = response[7:]
+if response.endswith("```"):
+    response = response[:-3]
 
-    # Step 2: Unescape if it's a raw string literal
-    try:
-        clean_str = bytes(clean_str, "utf-8").decode("unicode_escape")
-    except Exception as e:
-        print("Warning: Unicode escape decoding failed, continuing.")
+# Try parsing cleaned response
+try:
+    cleaned_json = json.loads(response)
+    print("✅ Cleaned JSON parsed successfully.")
 
-    # Step 3: Parse JSON
-    try:
-        data = json.loads(clean_str)
-        return data
-    except json.JSONDecodeError as e:
-        print("Failed to parse JSON:", e)
-        return None
-data = clean_llm_json_response(reponse)
+    # Save to file
+    with open("cleaned_script2.json", "w") as f:
+        json.dump(cleaned_json, f, indent=2)
+    print("✅ Saved to cleaned_script.json")
 
-print(data)
-with open('data.json', 'w') as file:
-    json.dump(data, file)
+except json.JSONDecodeError as e:
+    print("❌ JSON parsing failed:", e)
+    with open("raw_output.txt", "w") as f:
+        f.write(response)
+    print("⚠️ Raw model response saved to raw_output.txt for inspection.")
