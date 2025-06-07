@@ -19,7 +19,7 @@ def create_file(file_path):
     return result.id
 
 # Getting the file ID
-file_id = create_file("data/WhatsApp Image 2025-05-26 at 5.19.33 PM.jpeg")
+file_id = create_file("data/WhatsApp Image 2025-06-04 at 6.22.48 PM.jpeg")
 
 
 
