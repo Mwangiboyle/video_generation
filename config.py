@@ -54,6 +54,6 @@ def clean_response(response: str):
     if response.startswith("```json"):
         response = response[7:]
     if response.endswith("```"):
-        cleaned_response = response[:-3]
+        response = response[:-3]
 
-    return cleaned_response
+    return response
